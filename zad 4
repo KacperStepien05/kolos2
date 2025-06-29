@@ -1,0 +1,28 @@
+private final Server server;
+private final ServerThread serverThread;
+
+public Controller(Server server, ServerThread serverThread) {
+    this.server = server;
+    this.serverThread = serverThread;
+}
+
+@FXML
+public void initialize() {
+    canvas.setOnMouseClicked(this::handleMouseClick);
+    serverThread.setDotConsumer(this::drawDot);
+}
+
+private void handleMouseClick(MouseEvent event) {
+    int x = (int) event.getX();
+    int y = (int) event.getY();
+    int radius = Integer.parseInt(radiusField.getText());
+    String color = colorPicker.getValue().toString();
+    Dot dot = new Dot(x, y, color, radius);
+    serverThread.send(dot);
+}
+
+private void drawDot(Dot dot) {
+    GraphicsContext gc = canvas.getGraphicsContext2D();
+    gc.setFill(Color.web(dot.color()));
+    gc.fillOval(dot.x() - dot.radius(), dot.y() - dot.radius(), dot.radius() * 2, dot.radius() * 2);
+}
