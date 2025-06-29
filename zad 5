@@ -1,0 +1,51 @@
+private Connection dbConnection;
+
+private void connectDB() {
+    try {
+        dbConnection = DriverManager.getConnection("jdbc:sqlite:dots.db");
+        try (Statement stmt = dbConnection.createStatement()) {
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS dot (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    x INTEGER NOT NULL,
+                    y INTEGER NOT NULL,
+                    color TEXT NOT NULL,
+                    radius INTEGER NOT NULL
+                )
+            """);
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+public void saveDot(Dot dot) {
+    try (PreparedStatement stmt = dbConnection.prepareStatement(
+            "INSERT INTO dot(x, y, color, radius) VALUES (?, ?, ?, ?)")) {
+        stmt.setInt(1, dot.x());
+        stmt.setInt(2, dot.y());
+        stmt.setString(3, dot.color());
+        stmt.setInt(4, dot.radius());
+        stmt.executeUpdate();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+public List<Dot> getSavedDots() {
+    List<Dot> dots = new ArrayList<>();
+    try (Statement stmt = dbConnection.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT * FROM dot")) {
+        while (rs.next()) {
+            dots.add(new Dot(
+                rs.getInt("x"),
+                rs.getInt("y"),
+                rs.getString("color"),
+                rs.getInt("radius")
+            ));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return dots;
+}
