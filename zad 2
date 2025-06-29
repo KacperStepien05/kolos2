@@ -1,0 +1,139 @@
+package app.server;
+
+import app.model.Dot;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.*;
+
+public class Server {
+    private final ServerSocket serverSocket;
+    private final List<ClientThread> clients = Collections.synchronizedList(new ArrayList<>());
+
+    public Server(int port) throws IOException {
+        serverSocket = new ServerSocket(port);
+        new Thread(this::acceptClients).start();
+    }
+
+    private void acceptClients() {
+        while (true) {
+            try {
+                Socket socket = serverSocket.accept();
+                ClientThread client = new ClientThread(socket, this);
+                clients.add(client);
+                client.start();
+                sendSavedDots(client);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void broadcast(String message) {
+        saveDot(Dot.fromMessage(message));  // Zad. 5
+        synchronized (clients) {
+            for (ClientThread client : clients) {
+                client.sendMessage(message);
+            }
+        }
+    }
+
+    public void sendSavedDots(ClientThread client) {
+        for (Dot dot : getSavedDots()) {
+            client.sendMessage(dot.toMessage());
+        }
+    }
+
+    // Do uzupełnienia w zadaniu 5:
+    public void saveDot(Dot dot) {}
+    public List<Dot> getSavedDots() { return List.of(); }
+}
+
+
+
+
+-----------------------------------------
+
+
+
+package app.server;
+
+import java.io.*;
+import java.net.Socket;
+
+public class ClientThread extends Thread {
+    private final Socket socket;
+    private final Server server;
+    private final PrintWriter out;
+    private final BufferedReader in;
+
+    public ClientThread(Socket socket, Server server) throws IOException {
+        this.socket = socket;
+        this.server = server;
+        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    }
+
+    @Override
+    public void run() {
+        String message;
+        try {
+            while ((message = in.readLine()) != null) {
+                server.broadcast(message);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendMessage(String message) {
+        out.println(message);
+    }
+}
+
+
+---------------------------------------------------
+
+package app.client;
+
+import app.model.Dot;
+
+import java.io.*;
+import java.net.Socket;
+import java.util.function.Consumer;
+
+public class ServerThread extends Thread {
+    private final Socket socket;
+    private final PrintWriter out;
+    private final BufferedReader in;
+    private Consumer<Dot> dotConsumer;
+
+    public ServerThread(String host, int port) throws IOException {
+        this.socket = new Socket(host, port);
+        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        start();
+    }
+
+    public void setDotConsumer(Consumer<Dot> consumer) {
+        this.dotConsumer = consumer;
+    }
+
+    public void send(Dot dot) {
+        out.println(dot.toMessage());
+    }
+
+    @Override
+    public void run() {
+        String line;
+        try {
+            while ((line = in.readLine()) != null) {
+                Dot dot = Dot.fromMessage(line);
+                if (dotConsumer != null) dotConsumer.accept(dot);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
