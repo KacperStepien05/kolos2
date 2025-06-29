@@ -1,0 +1,38 @@
+package app;
+
+import javafx.fxml.FXML;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.ColorPicker;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.paint.Color;
+
+public class Controller {
+
+    @FXML
+    private Canvas canvas;
+
+    @FXML
+    private ColorPicker colorPicker;
+
+    @FXML
+    private TextField radiusField;
+
+    @FXML
+    public void initialize() {
+        canvas.setOnMouseClicked(this::handleMouseClick);
+    }
+
+    private void handleMouseClick(MouseEvent event) {
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        double x = event.getX();
+        double y = event.getY();
+
+        int radius = Integer.parseInt(radiusField.getText());
+        Color color = colorPicker.getValue();
+
+        gc.setFill(color);
+        gc.fillOval(x - radius, y - radius, radius * 2, radius * 2);
+    }
+}
